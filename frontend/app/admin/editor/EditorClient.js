@@ -68,6 +68,12 @@ export default function EditorClient({ searchParams }) {
   const [nestedListItems, setNestedListItems] = useState([]);
   const [nestedListInputs, setNestedListInputs] = useState({});
   const [listItemText, setListItemText] = useState('');
+  const [childNestedListItems, setChildNestedListItems] = useState([]);
+  const [childNestedListInputs, setChildNestedListInputs] = useState({});
+  const [sectionChildNestedListItems, setSectionChildNestedListItems] = useState([]);
+  const [sectionChildNestedListInputs, setSectionChildNestedListInputs] = useState({});
+  const [sectionParagraphChildNestedListItems, setSectionParagraphChildNestedListItems] = useState([]);
+  const [sectionParagraphChildNestedListInputs, setSectionParagraphChildNestedListInputs] = useState({});
   const [sectionHeadingText, setSectionHeadingText] = useState('');
   const [sectionHeadingLevel, setSectionHeadingLevel] = useState(2);
   const [sectionChildren, setSectionChildren] = useState([]);
@@ -452,7 +458,7 @@ export default function EditorClient({ searchParams }) {
       child = {
         type: 'list',
         style: childListStyle,
-        items: childListItems.length > 0 ? childListItems : []
+        items: childNestedListItems.length > 0 ? childNestedListItems : childListItems
       };
     }
 
@@ -468,6 +474,8 @@ export default function EditorClient({ searchParams }) {
     setChildImageSrc('');
     setChildImageAlt('');
     setChildListItems([]);
+    setChildNestedListItems([]);
+    setChildNestedListInputs({});
     setChildListItemText('');
     setChildListStyle('unordered');
   };
@@ -497,26 +505,37 @@ export default function EditorClient({ searchParams }) {
     }));
   };
 
+  const setNestedInputValue = (setInputs, inputs, path, field, value) => {
+    const key = path.join('-');
+    setInputs((prev) => ({
+      ...prev,
+      [key]: {
+        ...(prev[key] || {}),
+        [field]: value
+      }
+    }));
+  };
+
   const getNestedListInputValue = (path, field, defaultValue = '') => {
     const key = path.join('-');
     return nestedListInputs[key]?.[field] ?? defaultValue;
   };
 
-  const addNestedListItem = (path) => {
+  const getNestedInputValue = (inputs, path, field, defaultValue = '') => {
     const key = path.join('-');
-    const text = getNestedListInputValue(path, 'text').trim();
-    const style = getNestedListInputValue(path, 'style', blockStyle);
-    if (!text) return;
+    return inputs[key]?.[field] ?? defaultValue;
+  };
 
-    const addToNested = (items, indices) => {
-      if (indices.length === 0) {
-        return [...items, { text, style, children: [] }];
+  const addItemToNested = (items, indices, text, style) => {
+    const addToNested = (currentItems, currentIndices) => {
+      if (currentIndices.length === 0) {
+        return [...currentItems, { text, style, children: [] }];
       }
-      return items.map((item, idx) => {
-        if (idx !== indices[0]) {
+      return currentItems.map((item, idx) => {
+        if (idx !== currentIndices[0]) {
           return item;
         }
-        if (indices.length === 1) {
+        if (currentIndices.length === 1) {
           return {
             ...item,
             children: [...(item.children || []), { text, style, children: [] }]
@@ -524,49 +543,165 @@ export default function EditorClient({ searchParams }) {
         }
         return {
           ...item,
-          children: addToNested(item.children || [], indices.slice(1))
+          children: addToNested(item.children || [], currentIndices.slice(1))
         };
       });
     };
-
-    setNestedListItems((prev) => addToNested(prev, path));
-    setNestedListInputValue(path, 'text', '');
+    return addToNested(items, indices);
   };
 
-  const updateNestedListItemText = (path, updatedText) => {
-    const updateInNested = (items, indices) => {
-      return items.map((item, idx) => {
-        if (idx !== indices[0]) {
+  const updateNestedTextIn = (items, indices, updatedText) => {
+    const updateInNested = (currentItems, currentIndices) => {
+      return currentItems.map((item, idx) => {
+        if (idx !== currentIndices[0]) {
           return item;
         }
-        if (indices.length === 1) {
+        if (currentIndices.length === 1) {
           return { ...item, text: updatedText };
         }
         return {
           ...item,
-          children: updateInNested(item.children || [], indices.slice(1))
+          children: updateInNested(item.children || [], currentIndices.slice(1))
         };
       });
     };
-    setNestedListItems((prev) => updateInNested(prev, path));
+    return updateInNested(items, indices);
   };
 
-  const removeListItem = (path) => {
-    const removeFromNested = (items, indices) => {
-      if (indices.length === 1) {
-        return items.filter((_, idx) => idx !== indices[0]);
+  const removeNestedItem = (items, indices) => {
+    const removeFromNested = (currentItems, currentIndices) => {
+      if (currentIndices.length === 1) {
+        return currentItems.filter((_, idx) => idx !== currentIndices[0]);
       }
-      return items.map((item, idx) => {
-        if (idx === indices[0]) {
-          return { ...item, children: removeFromNested(item.children, indices.slice(1)) };
+      return currentItems.map((item, idx) => {
+        if (idx === currentIndices[0]) {
+          return { ...item, children: removeFromNested(item.children || [], currentIndices.slice(1)) };
         }
         return item;
       });
     };
-    setNestedListItems((prev) => removeFromNested(prev, path));
+    return removeFromNested(items, indices);
   };
 
-  const renderListItemUI = (items, path = []) => {
+  const addNestedListItem = (path) => {
+    const text = getNestedListInputValue(path, 'text').trim();
+    const style = getNestedListInputValue(path, 'style', blockStyle);
+    if (!text) return;
+    setNestedListItems((prev) => addItemToNested(prev, path, text, style));
+    setNestedListInputValue(path, 'text', '');
+  };
+
+  const updateNestedListItemText = (path, updatedText) => {
+    setNestedListItems((prev) => updateNestedTextIn(prev, path, updatedText));
+  };
+
+  const removeListItem = (path) => {
+    setNestedListItems((prev) => removeNestedItem(prev, path));
+  };
+
+  const setChildNestedListInputValue = (path, field, value) => {
+    setNestedInputValue(setChildNestedListInputs, childNestedListInputs, path, field, value);
+  };
+
+  const getChildNestedListInputValue = (path, field, defaultValue = '') => {
+    return getNestedInputValue(childNestedListInputs, path, field, defaultValue);
+  };
+
+  const addChildNestedListItem = (path) => {
+    const text = getChildNestedListInputValue(path, 'text').trim();
+    const style = getChildNestedListInputValue(path, 'style', childListStyle);
+    if (!text) return;
+    setChildNestedListItems((prev) => addItemToNested(prev, path, text, style));
+    setChildNestedListInputValue(path, 'text', '');
+  };
+
+  const updateChildNestedListItemText = (path, updatedText) => {
+    setChildNestedListItems((prev) => updateNestedTextIn(prev, path, updatedText));
+  };
+
+  const removeChildListItem = (path) => {
+    setChildNestedListItems((prev) => removeNestedItem(prev, path));
+  };
+
+  const addChildListItem = () => {
+    if (!childListItemText.trim()) return;
+    setChildNestedListItems((prev) => [...prev, { text: childListItemText.trim(), children: [] }]);
+    setChildListItemText('');
+  };
+
+  const addSectionChildListItem = () => {
+    if (!sectionChildListItemText.trim()) return;
+    setSectionChildNestedListItems((prev) => [...prev, { text: sectionChildListItemText.trim(), children: [] }]);
+    setSectionChildListItemText('');
+  };
+
+  const addSectionParagraphChildListItem = () => {
+    if (!sectionParagraphChildListItemText.trim()) return;
+    setSectionParagraphChildNestedListItems((prev) => [...prev, { text: sectionParagraphChildListItemText.trim(), children: [] }]);
+    setSectionParagraphChildListItemText('');
+  };
+
+  const setSectionChildNestedListInputValue = (path, field, value) => {
+    setNestedInputValue(setSectionChildNestedListInputs, sectionChildNestedListInputs, path, field, value);
+  };
+
+  const getSectionChildNestedListInputValue = (path, field, defaultValue = '') => {
+    return getNestedInputValue(sectionChildNestedListInputs, path, field, defaultValue);
+  };
+
+  const addSectionChildNestedListItem = (path) => {
+    const text = getSectionChildNestedListInputValue(path, 'text').trim();
+    const style = getSectionChildNestedListInputValue(path, 'style', sectionChildListStyle);
+    if (!text) return;
+    setSectionChildNestedListItems((prev) => addItemToNested(prev, path, text, style));
+    setSectionChildNestedListInputValue(path, 'text', '');
+  };
+
+  const updateSectionChildNestedListItemText = (path, updatedText) => {
+    setSectionChildNestedListItems((prev) => updateNestedTextIn(prev, path, updatedText));
+  };
+
+  const removeSectionChildListItem = (path) => {
+    setSectionChildNestedListItems((prev) => removeNestedItem(prev, path));
+  };
+
+  const setSectionParagraphChildNestedListInputValue = (path, field, value) => {
+    setNestedInputValue(setSectionParagraphChildNestedListInputs, sectionParagraphChildNestedListInputs, path, field, value);
+  };
+
+  const getSectionParagraphChildNestedListInputValue = (path, field, defaultValue = '') => {
+    return getNestedInputValue(sectionParagraphChildNestedListInputs, path, field, defaultValue);
+  };
+
+  const addSectionParagraphChildNestedListItem = (path) => {
+    const text = getSectionParagraphChildNestedListInputValue(path, 'text').trim();
+    const style = getSectionParagraphChildNestedListInputValue(path, 'style', sectionParagraphChildListStyle);
+    if (!text) return;
+    setSectionParagraphChildNestedListItems((prev) => addItemToNested(prev, path, text, style));
+    setSectionParagraphChildNestedListInputValue(path, 'text', '');
+  };
+
+  const updateSectionParagraphChildNestedListItemText = (path, updatedText) => {
+    setSectionParagraphChildNestedListItems((prev) => updateNestedTextIn(prev, path, updatedText));
+  };
+
+  const removeSectionParagraphChildListItem = (path) => {
+    setSectionParagraphChildNestedListItems((prev) => removeNestedItem(prev, path));
+  };
+
+  const renderListItemUI = (
+    items,
+    path = [],
+    inputState = {
+      getInputValue: getNestedListInputValue,
+      setInputValue: setNestedListInputValue,
+      addItem: addNestedListItem,
+      updateItemText: updateNestedListItemText,
+      removeItem: removeListItem,
+      defaultStyle: blockStyle
+    }
+  ) => {
+    const { getInputValue, setInputValue, addItem, updateItemText, removeItem, defaultStyle } = inputState;
     return (
       <ul className="space-y-2">
         {items.map((item, idx) => {
@@ -576,13 +711,13 @@ export default function EditorClient({ searchParams }) {
               <div className="mb-3 grid gap-3 md:grid-cols-[1fr_auto]">
                 <input
                   value={item.text}
-                  onChange={(event) => updateNestedListItemText(itemPath, event.target.value)}
+                  onChange={(event) => updateItemText(itemPath, event.target.value)}
                   className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2"
                 />
                 <button
                   type="button"
                   className="button small secondary"
-                  onClick={() => removeListItem(itemPath)}
+                  onClick={() => removeItem(itemPath)}
                 >
                   Remove
                 </button>
@@ -591,14 +726,14 @@ export default function EditorClient({ searchParams }) {
                 <label className="block text-sm text-slate-700">
                   Add nested item
                   <input
-                    value={getNestedListInputValue(itemPath, 'text')}
-                    onChange={(event) => setNestedListInputValue(itemPath, 'text', event.target.value)}
+                    value={getInputValue(itemPath, 'text')}
+                    onChange={(event) => setInputValue(itemPath, 'text', event.target.value)}
                     placeholder="Child item text"
                     className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2"
                     onKeyDown={(event) => {
                       if (event.key === 'Enter') {
                         event.preventDefault();
-                        addNestedListItem(itemPath);
+                        addItem(itemPath);
                       }
                     }}
                   />
@@ -606,8 +741,8 @@ export default function EditorClient({ searchParams }) {
                 <label className="block text-sm text-slate-700">
                   Nested list style
                   <select
-                    value={getNestedListInputValue(itemPath, 'style', blockStyle)}
-                    onChange={(event) => setNestedListInputValue(itemPath, 'style', event.target.value)}
+                    value={getInputValue(itemPath, 'style', defaultStyle)}
+                    onChange={(event) => setInputValue(itemPath, 'style', event.target.value)}
                     className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2"
                   >
                     <option value="unordered">Unordered</option>
@@ -617,14 +752,14 @@ export default function EditorClient({ searchParams }) {
                 <button
                   type="button"
                   className="button secondary"
-                  onClick={() => addNestedListItem(itemPath)}
+                  onClick={() => addItem(itemPath)}
                 >
                   Add child item
                 </button>
               </div>
               {item.children && item.children.length > 0 ? (
                 <div className="ml-4 border-l-2 border-slate-200 pl-3">
-                  {renderListItemUI(item.children, itemPath)}
+                  {renderListItemUI(item.children, itemPath, inputState)}
                 </div>
               ) : null}
             </li>
@@ -824,9 +959,7 @@ export default function EditorClient({ searchParams }) {
                         onKeyDown={(event) => {
                           if (event.key === 'Enter') {
                             event.preventDefault();
-                            if (!childListItemText.trim()) return;
-                            setChildListItems((prev) => [...prev, { text: childListItemText.trim(), children: [] }]);
-                            setChildListItemText('');
+                            addChildListItem();
                           }
                         }}
                       />
@@ -834,15 +967,23 @@ export default function EditorClient({ searchParams }) {
                     <button
                       type="button"
                       className="button secondary"
-                      onClick={() => {
-                        if (!childListItemText.trim()) return;
-                        setChildListItems((prev) => [...prev, { text: childListItemText.trim(), children: [] }]);
-                        setChildListItemText('');
-                      }}
+                      onClick={addChildListItem}
                     >
                       Add list item
                     </button>
-                    {childListItems.length > 0 && (
+                    {childNestedListItems.length > 0 ? (
+                      <div>
+                        <strong className="block mb-2">Current nested list</strong>
+                        {renderListItemUI(childNestedListItems, [], {
+                          getInputValue: getChildNestedListInputValue,
+                          setInputValue: setChildNestedListInputValue,
+                          addItem: addChildNestedListItem,
+                          updateItemText: updateChildNestedListItemText,
+                          removeItem: removeChildListItem,
+                          defaultStyle: childListStyle
+                        })}
+                      </div>
+                    ) : childListItems.length > 0 ? (
                       <div>
                         <strong className="block mb-2">Current items</strong>
                         <ul className="list-disc pl-5 text-slate-700">
@@ -851,7 +992,7 @@ export default function EditorClient({ searchParams }) {
                           ))}
                         </ul>
                       </div>
-                    )}
+                    ) : null}
                   </div>
                 )}
                 <button type="button" onClick={addParagraphChild} className="button secondary">
@@ -1042,9 +1183,7 @@ export default function EditorClient({ searchParams }) {
                               onKeyDown={(event) => {
                                 if (event.key === 'Enter') {
                                   event.preventDefault();
-                                  if (!sectionParagraphChildListItemText.trim()) return;
-                                  setSectionParagraphChildListItems((prev) => [...prev, { text: sectionParagraphChildListItemText.trim(), children: [] }]);
-                                  setSectionParagraphChildListItemText('');
+                                  addSectionParagraphChildListItem();
                                 }
                               }}
                             />
@@ -1052,21 +1191,29 @@ export default function EditorClient({ searchParams }) {
                           <button
                             type="button"
                             className="button secondary"
-                            onClick={() => {
-                              if (!sectionParagraphChildListItemText.trim()) return;
-                              setSectionParagraphChildListItems((prev) => [...prev, { text: sectionParagraphChildListItemText.trim(), children: [] }]);
-                              setSectionParagraphChildListItemText('');
-                            }}
+                            onClick={addSectionParagraphChildListItem}
                           >
                             Add nested list item
                           </button>
-                          {sectionParagraphChildListItems.length > 0 && (
+                          {sectionParagraphChildNestedListItems.length > 0 ? (
+                            <div>
+                              <strong className="block mb-2">Current nested list</strong>
+                              {renderListItemUI(sectionParagraphChildNestedListItems, [], {
+                                getInputValue: getSectionParagraphChildNestedListInputValue,
+                                setInputValue: setSectionParagraphChildNestedListInputValue,
+                                addItem: addSectionParagraphChildNestedListItem,
+                                updateItemText: updateSectionParagraphChildNestedListItemText,
+                                removeItem: removeSectionParagraphChildListItem,
+                                defaultStyle: sectionParagraphChildListStyle
+                              })}
+                            </div>
+                          ) : sectionParagraphChildListItems.length > 0 ? (
                             <ul className="list-disc pl-5 text-slate-700">
                               {sectionParagraphChildListItems.map((item, index) => (
                                 <li key={index}>{item.text}</li>
                               ))}
                             </ul>
-                          )}
+                          ) : null}
                         </div>
                       )}
                       <button
@@ -1102,7 +1249,7 @@ export default function EditorClient({ searchParams }) {
                             child = {
                               type: 'list',
                               style: sectionParagraphChildListStyle,
-                              items: sectionParagraphChildListItems
+                              items: sectionParagraphChildNestedListItems.length > 0 ? sectionParagraphChildNestedListItems : sectionParagraphChildListItems
                             };
                           }
                           if (!child) return;
@@ -1115,6 +1262,8 @@ export default function EditorClient({ searchParams }) {
                           setSectionParagraphChildImageAlt('');
                           setSectionParagraphChildListStyle('unordered');
                           setSectionParagraphChildListItems([]);
+                          setSectionParagraphChildNestedListItems([]);
+                          setSectionParagraphChildNestedListInputs({});
                           setSectionParagraphChildListItemText('');
                         }}
                       >
@@ -1171,9 +1320,7 @@ export default function EditorClient({ searchParams }) {
                         onKeyDown={(event) => {
                           if (event.key === 'Enter') {
                             event.preventDefault();
-                            if (!sectionChildListItemText.trim()) return;
-                            setSectionChildListItems((prev) => [...prev, { text: sectionChildListItemText.trim(), children: [] }]);
-                            setSectionChildListItemText('');
+                            addSectionChildListItem();
                           }
                         }}
                       />
@@ -1181,21 +1328,29 @@ export default function EditorClient({ searchParams }) {
                     <button
                       type="button"
                       className="button secondary"
-                      onClick={() => {
-                        if (!sectionChildListItemText.trim()) return;
-                        setSectionChildListItems((prev) => [...prev, { text: sectionChildListItemText.trim(), children: [] }]);
-                        setSectionChildListItemText('');
-                      }}
+                      onClick={addSectionChildListItem}
                     >
                       Add list item
                     </button>
-                    {sectionChildListItems.length > 0 && (
+                    {sectionChildNestedListItems.length > 0 ? (
+                      <div>
+                        <strong className="block mb-2">Current nested list</strong>
+                        {renderListItemUI(sectionChildNestedListItems, [], {
+                          getInputValue: getSectionChildNestedListInputValue,
+                          setInputValue: setSectionChildNestedListInputValue,
+                          addItem: addSectionChildNestedListItem,
+                          updateItemText: updateSectionChildNestedListItemText,
+                          removeItem: removeSectionChildListItem,
+                          defaultStyle: sectionChildListStyle
+                        })}
+                      </div>
+                    ) : sectionChildListItems.length > 0 ? (
                       <ul className="list-disc pl-5 text-slate-700">
                         {sectionChildListItems.map((item, index) => (
                           <li key={index}>{item.text}</li>
                         ))}
                       </ul>
-                    )}
+                    ) : null}
                   </div>
                 )}
                 {sectionChildType === 'table' && (
@@ -1245,7 +1400,7 @@ export default function EditorClient({ searchParams }) {
                       child = {
                         type: 'list',
                         style: sectionChildListStyle,
-                        items: sectionChildListItems
+                        items: sectionChildNestedListItems.length > 0 ? sectionChildNestedListItems : sectionChildListItems
                       };
                     }
                     if (sectionChildType === 'table') {
@@ -1265,6 +1420,8 @@ export default function EditorClient({ searchParams }) {
                     setSectionChildImageAlt('');
                     setSectionChildListStyle('unordered');
                     setSectionChildListItems([]);
+                    setSectionChildNestedListItems([]);
+                    setSectionChildNestedListInputs({});
                     setSectionChildListItemText('');
                     setSectionParagraphChildren([]);
                   }}
