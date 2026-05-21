@@ -1,0 +1,22 @@
+{
+  "name": "big-growth-digital-blog-backend",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm --workspace backend run dev\" \"npm --workspace frontend run dev\"",
+    "dev:backend": "npm --workspace backend run dev",
+    "dev:frontend": "npm --workspace frontend run dev",
+    "deploy": "npm --workspace backend run deploy",
+    "lint": "npm --workspace backend run lint && npm --workspace frontend run lint",
+    "install:all": "npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0"
+  },
+  "dependencies": {
+    "serverless-offline": "^14.6.0"
+  }
+}

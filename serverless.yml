@@ -1,0 +1,171 @@
+service: big-growth-digital-blog-backend
+frameworkVersion: '4'
+provider:
+  name: aws
+  runtime: nodejs20.x
+  stage: ${opt:stage, 'dev'}
+  region: ${opt:region, 'ap-south-1'}
+  timeout: 120
+  httpApi:
+    payload: '2.0'
+  environment:
+    MONGODB_URI: ${env:MONGODB_URI}
+    MONGODB_DB: ${env:MONGODB_DB, 'blogcms'}
+    JWT_SECRET: ${env:JWT_SECRET}
+    JWT_REFRESH_SECRET: ${env:JWT_REFRESH_SECRET}
+    JWT_ACCESS_EXPIRES: ${env:JWT_ACCESS_EXPIRES, '7d'}
+    JWT_REFRESH_EXPIRES: ${env:JWT_REFRESH_EXPIRES, '7d'}
+    S3_BUCKET: ${env:S3_BUCKET, 'bgd-blogs'}
+    S3_REGION: ${env:S3_REGION, 'ap-south-1'}
+    # S3_CLOUDFRONT_URL: ${env:S3_CLOUDFRONT_URL}
+  tracing:
+    apiGateway: true
+    lambda: true
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - s3:PutObject
+            - s3:GetObject
+          Resource:
+            - !Sub 'arn:aws:s3:::${S3_BUCKET}/*'
+plugins:
+  - serverless-offline
+  - serverless-dotenv-plugin
+package:
+  individually: true
+functions:
+  healthCheck:
+    handler: backend/src/handlers/health.ping
+    timeout: 120
+    events:
+      - httpApi:
+          path: /health
+          method: get
+  authLogin:
+    handler: backend/src/handlers/auth.login
+    timeout: 120
+    events:
+      - httpApi:
+          path: /auth/login
+          method: post
+  authRefresh:
+    handler: backend/src/handlers/auth.refresh
+    timeout: 120
+    events:
+      - httpApi:
+          path: /auth/refresh
+          method: post
+  postsList:
+    handler: backend/src/handlers/posts.list
+    timeout: 120
+    events:
+      - httpApi:
+          path: /posts
+          method: get
+  postsGet:
+    handler: backend/src/handlers/posts.getBySlug
+    timeout: 120
+    events:
+      - httpApi:
+          path: /posts/{slug}
+          method: get
+  postsCreate:
+    handler: backend/src/handlers/posts.create
+    timeout: 120
+    events:
+      - httpApi:
+          path: /posts
+          method: post
+  postsUpdate:
+    handler: backend/src/handlers/posts.update
+    timeout: 120
+    events:
+      - httpApi:
+          path: /posts/{id}
+          method: put
+  postsDelete:
+    handler: backend/src/handlers/posts.remove
+    timeout: 120
+    events:
+      - httpApi:
+          path: /posts/{id}
+          method: delete
+  searchQuery:
+    handler: backend/src/handlers/search.query
+    timeout: 120
+    events:
+      - httpApi:
+          path: /search
+          method: get
+  categoryList:
+    handler: backend/src/handlers/categories.list
+    timeout: 120
+    events:
+      - httpApi:
+          path: /categories
+          method: get
+  categoryCreate:
+    handler: backend/src/handlers/categories.create
+    timeout: 120
+    events:
+      - httpApi:
+          path: /categories
+          method: post
+  tagList:
+    handler: backend/src/handlers/tags.list
+    timeout: 120
+    events:
+      - httpApi:
+          path: /tags
+          method: get
+  tagCreate:
+    handler: backend/src/handlers/tags.create
+    timeout: 120
+    events:
+      - httpApi:
+          path: /tags
+          method: post
+  mediaUpload:
+    handler: backend/src/handlers/media.uploadPresignedUrl
+    timeout: 120
+    events:
+      - httpApi:
+          path: /media/upload
+          method: post
+resources:
+  Resources:
+    MediaUploadBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${env:S3_BUCKET}
+        CorsConfiguration:
+          CorsRules:
+            - AllowedOrigins:
+                - '*'
+              AllowedMethods:
+                - PUT
+                - GET
+                - POST
+                - OPTIONS
+              AllowedHeaders:
+                - '*'
+              ExposedHeaders:
+                - ETag
+              MaxAgeSeconds: 3000
+    MediaUploadBucketPolicy:
+      Type: AWS::S3::BucketPolicy
+      Properties:
+        Bucket: !Ref MediaUploadBucket
+        PolicyDocument:
+          Statement:
+            - Effect: Allow
+              Principal: '*'
+              Action: 's3:GetObject'
+              Resource: !Sub 'arn:aws:s3:::${S3_BUCKET}/*'
+  Outputs:
+    MediaBucketName:
+      Value: !Ref MediaUploadBucket
+      Export:
+        Name: blogcms-media-bucket-name
