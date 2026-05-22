@@ -24,6 +24,7 @@ export async function uploadFile ({ filename, contentType, body }) {
   return {
     key,
     previewUrl,
+    getCommand,
     s3Url
   }
 }

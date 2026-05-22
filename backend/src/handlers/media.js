@@ -29,9 +29,10 @@ export async function uploadPresignedUrl (event) {
       key: upload.key,
       previewUrl: upload.previewUrl,
       s3Url: upload.s3Url
+      // getCommand: upload.getCommand
     })
 
-    return success({ previewUrl: upload.previewUrl, s3Url: upload.s3Url })
+    return success({ previewUrl: upload.previewUrl, s3Url: upload.s3Url, getCommand: upload.getCommand })
   } catch (err) {
     return error(err.message || 'Unable to upload file', 500)
   }
