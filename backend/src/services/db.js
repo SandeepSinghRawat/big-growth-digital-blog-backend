@@ -1,9 +1,4 @@
 import { MongoClient } from 'mongodb'
-import dotenv from 'dotenv'
-import { fileURLToPath } from 'url'
-
-const envPath = fileURLToPath(new URL('../../.env', import.meta.url))
-dotenv.config({ path: envPath })
 
 const uri = process.env.MONGODB_URI
 const dbName = process.env.MONGODB_DB || 'blogcms'

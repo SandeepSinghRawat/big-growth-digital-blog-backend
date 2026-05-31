@@ -5,9 +5,22 @@ provider:
   runtime: nodejs20.x
   stage: ${opt:stage, 'dev'}
   region: ${opt:region, 'ap-south-1'}
-  timeout: 120
+  timeout: 30
   httpApi:
     payload: '2.0'
+    cors:
+      allowedOrigins:
+        - https://blog-cms-bay-eight.vercel.app
+      allowedHeaders:
+        - Content-Type
+        - Authorization
+      allowedMethods:
+        - GET
+        - POST
+        - PUT
+        - DELETE
+        - OPTIONS
+      allowCredentials: true
   environment:
     MONGODB_URI: ${env:MONGODB_URI}
     MONGODB_DB: ${env:MONGODB_DB, 'blogcms'}
@@ -29,143 +42,128 @@ provider:
             - s3:PutObject
             - s3:GetObject
           Resource:
-            - !Sub 'arn:aws:s3:::${S3_BUCKET}/*'
+            - !Sub 'arn:aws:s3:::${env:S3_BUCKET}/*'
 plugins:
   - serverless-offline
   - serverless-dotenv-plugin
 package:
   individually: true
+  patterns:
+    - '!node_modules/aws-sdk/**'
+    - '!uploads/**'
+    - '!public/**'
+    - '!tmp/**'
+    - '!tests/**'
+    - '!coverage/**'
+    - '!README.md'
+    - '!package-lock.json'
+    - '!.git/**'
+build:
+  esbuild:
+    bundle: true
+    minify: true
+    sourcemap: false
+    external:
+      - aws-sdk
 functions:
   healthCheck:
     handler: backend/src/handlers/health.ping
-    timeout: 120
+    timeout: 30
     events:
       - httpApi:
           path: /health
           method: get
   authLogin:
     handler: backend/src/handlers/auth.login
-    timeout: 120
+    timeout: 30
     events:
       - httpApi:
           path: /auth/login
           method: post
+          cors: true
   authRefresh:
     handler: backend/src/handlers/auth.refresh
-    timeout: 120
+    timeout: 30
     events:
       - httpApi:
           path: /auth/refresh
           method: post
   postsList:
     handler: backend/src/handlers/posts.list
-    timeout: 120
+    timeout: 30
     events:
       - httpApi:
           path: /posts
           method: get
   postsGet:
     handler: backend/src/handlers/posts.getBySlug
-    timeout: 120
+    timeout: 30
     events:
       - httpApi:
           path: /posts/{slug}
           method: get
   postsCreate:
     handler: backend/src/handlers/posts.create
-    timeout: 120
+    timeout: 30
     events:
       - httpApi:
           path: /posts
           method: post
   postsUpdate:
     handler: backend/src/handlers/posts.update
-    timeout: 120
+    timeout: 30
     events:
       - httpApi:
           path: /posts/{id}
           method: put
   postsDelete:
     handler: backend/src/handlers/posts.remove
-    timeout: 120
+    timeout: 30
     events:
       - httpApi:
           path: /posts/{id}
           method: delete
   searchQuery:
     handler: backend/src/handlers/search.query
-    timeout: 120
+    timeout: 30
     events:
       - httpApi:
           path: /search
           method: get
   categoryList:
     handler: backend/src/handlers/categories.list
-    timeout: 120
+    timeout: 30
     events:
       - httpApi:
           path: /categories
           method: get
   categoryCreate:
     handler: backend/src/handlers/categories.create
-    timeout: 120
+    timeout: 30
     events:
       - httpApi:
           path: /categories
           method: post
   tagList:
     handler: backend/src/handlers/tags.list
-    timeout: 120
+    timeout: 30
     events:
       - httpApi:
           path: /tags
           method: get
   tagCreate:
     handler: backend/src/handlers/tags.create
-    timeout: 120
+    timeout: 30
     events:
       - httpApi:
           path: /tags
           method: post
   mediaUpload:
     handler: backend/src/handlers/media.uploadPresignedUrl
-    timeout: 120
+    timeout: 30
     events:
       - httpApi:
           path: /media/upload
           method: post
 resources:
   Resources:
-    MediaUploadBucket:
-      Type: AWS::S3::Bucket
-      Properties:
-        BucketName: ${env:S3_BUCKET}
-        CorsConfiguration:
-          CorsRules:
-            - AllowedOrigins:
-                - '*'
-              AllowedMethods:
-                - PUT
-                - GET
-                - POST
-                - OPTIONS
-              AllowedHeaders:
-                - '*'
-              ExposedHeaders:
-                - ETag
-              MaxAgeSeconds: 3000
-    MediaUploadBucketPolicy:
-      Type: AWS::S3::BucketPolicy
-      Properties:
-        Bucket: !Ref MediaUploadBucket
-        PolicyDocument:
-          Statement:
-            - Effect: Allow
-              Principal: '*'
-              Action: 's3:GetObject'
-              Resource: !Sub 'arn:aws:s3:::${S3_BUCKET}/*'
-  Outputs:
-    MediaBucketName:
-      Value: !Ref MediaUploadBucket
-      Export:
-        Name: blogcms-media-bucket-name

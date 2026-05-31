@@ -164,7 +164,7 @@ export default function EditorClient({ searchParams }) {
     if (blockType === 'paragraph') {
       block = {
         type: 'paragraph',
-        text: blockText || 'New paragraph'
+        text: blockText || null
       };
       if (paragraphChildren.length > 0) {
         block.children = paragraphChildren;
@@ -182,7 +182,7 @@ export default function EditorClient({ searchParams }) {
       block = {
         type: 'list',
         style: blockStyle,
-        items
+        item
       };
     }
 

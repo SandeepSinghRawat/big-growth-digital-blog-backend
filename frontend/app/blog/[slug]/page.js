@@ -20,6 +20,7 @@ export async function generateMetadata({ params }) {
 export default async function BlogPage({ params }) {
   const data = await fetchApi(`/posts/${params.slug}`);
   const post = data?.post;
+  console.log("post data", post);
 
   if (!post) {
     return (
@@ -35,18 +36,19 @@ export default async function BlogPage({ params }) {
       <JsonLd post={post} />
       <article className="blog-post">
         <header className="space-y-4">
-          <p className="eyebrow">{post.category || 'Uncategorized'}</p>
+          {/* <p className="eyebrow">{post.category || 'Uncategorized'}</p> */}
           <h1 className="text-4xl font-semibold tracking-tight text-slate-950">{post.title}</h1>
           <p className="post-meta">Published: {new Date(post.publishedAt).toLocaleDateString()}</p>
         </header>
-        {post.featuredImage ? (
+        {/* {post.blocks.find((item) => item.type==="image") ? (
           <img
-            src={post.featuredImage}
+            src={post.blocks.find((item) => item.type==="image").src}
             alt={post.seo?.metaTitle || post.title}
             className="featured-image"
           />
-        ) : null}
+        ) : null} */}
         <section className="content-blocks">
+          <p>{post.summary}</p>
           <BlogBlockRenderer blocks={post.blocks} />
         </section>
       </article>

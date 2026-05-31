@@ -134,6 +134,7 @@ export default function BlogBlockRenderer({ blocks = [] }) {
       case 'faq':
         return (
           <section key={key} className="faq-block">
+            <h2 className="text-2xl p-5">FAQ</h2>
             {(block.items || []).map((item, itemIndex) => (
               <div key={itemIndex} className="space-y-2 rounded-3xl border border-slate-200 bg-slate-50 p-5">
                 <strong className="block text-slate-900">{item.question}</strong>

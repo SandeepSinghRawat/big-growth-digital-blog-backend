@@ -5,6 +5,7 @@ import { authSchema } from '../validators.js'
 
 export async function login (event) {
   try {
+    console.log('event data', event)
     const payload = JSON.parse(event.body || '{}')
     const { error: validationError, value } = authSchema.validate(payload)
     if (validationError) {
@@ -30,6 +31,7 @@ export async function login (event) {
       user: authPayload
     })
   } catch (err) {
+    console.log('login failed')
     return error(err.message || 'Login failed', 500)
   }
 }

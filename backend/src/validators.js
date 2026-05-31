@@ -7,9 +7,10 @@ export const authSchema = Joi.object({
 })
 
 export const postSchema = Joi.object({
+  _id: Joi.string().optional(),
   title: Joi.string().trim().required(),
   slug: Joi.string().trim().required(),
-  summary: Joi.string().allow('').max(280),
+  summary: Joi.string().allow('').max(1000),
   featuredImage: Joi.string().uri().allow(''),
   category: Joi.string().trim().required(),
   tags: Joi.array().items(Joi.string().trim().required()).default([]),
@@ -26,7 +27,8 @@ export const postSchema = Joi.object({
     canonicalUrl: Joi.string().uri().allow(''),
     openGraph: Joi.object().default({})
   }).default({}),
-  relatedPosts: Joi.array().items(Joi.string()).default([])
+  relatedPosts: Joi.array().items(Joi.string()).default([]),
+  updatedAt: Joi.string().optional()
 })
 
 export const categorySchema = Joi.object({
