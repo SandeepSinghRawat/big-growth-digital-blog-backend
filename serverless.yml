@@ -11,6 +11,7 @@ provider:
     cors:
       allowedOrigins:
         - https://blog-cms-bay-eight.vercel.app
+        - http://localhost:3003
       allowedHeaders:
         - Content-Type
         - Authorization
@@ -80,7 +81,7 @@ functions:
       - httpApi:
           path: /auth/login
           method: post
-          cors: true
+          
   authRefresh:
     handler: backend/src/handlers/auth.refresh
     timeout: 30

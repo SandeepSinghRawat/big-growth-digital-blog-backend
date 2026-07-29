@@ -1,5 +1,7 @@
 export default function BlogBlockRenderer({ blocks = [] }) {
   const renderBlock = (block, key) => {
+    console.log("block data", block);
+    
     if (!block) {
       return null;
     }

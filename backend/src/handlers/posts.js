@@ -88,13 +88,15 @@ export async function create (event) {
     if (validationError) {
       return error(validationError.message, 400)
     }
-
+    console.log('validate value', value.blocks[0])
     const normalized = normalizePostPayload(value)
+    console.log('normalised value', normalized.blocks[0])
     normalized.slug = normalized.slug || generateSlug(normalized.title)
     normalized.publishedAt = normalized.status === 'published' ? normalized.publishedAt || new Date() : null
     normalized.updatedAt = new Date()
 
     const collection = await getCollection(collectionName)
+    console.log('final normalised ***********', normalized.blocks[0])
     const result = await collection.insertOne(normalized)
 
     return success({ id: result.insertedId, slug: normalized.slug }, 201)
@@ -118,6 +120,7 @@ export async function update (event) {
     }
 
     const normalized = normalizePostPayload(value)
+    console.log('normalized data', normalized)
     normalized.slug = normalized.slug || generateSlug(normalized.title)
     normalized.updatedAt = new Date()
     if (normalized.status === 'published' && !normalized.publishedAt) {

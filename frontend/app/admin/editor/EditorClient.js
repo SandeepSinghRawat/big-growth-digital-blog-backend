@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Tiptap from '../../../components/TipTap';
+import CoverImage from '../../../components/TipTapComponents/CoverImage';
 
 const defaultPost = {
   title: '',
@@ -12,6 +14,7 @@ const defaultPost = {
   status: 'draft',
   publishedAt: undefined,
   seo: { metaTitle: '', metaDescription: '', primaryKeyword: '', secondaryKeywords: [], canonicalUrl: '', openGraph: {} },
+  featuredImage: '',
   blocks: []
 };
 
@@ -37,69 +40,10 @@ export default function EditorClient({ searchParams }) {
   const [loadingPost, setLoadingPost] = useState(false);
   const router = useRouter();
   const postId = String(searchParams?.id || '');
-  const [blockType, setBlockType] = useState('paragraph');
-  const [blockText, setBlockText] = useState('');
-  const [blockHeadingLevel, setBlockHeadingLevel] = useState(2);
-  const [blockHtml, setBlockHtml] = useState('');
-  const [paragraphChildren, setParagraphChildren] = useState([]);
-  const [childType, setChildType] = useState('text');
-  const [childText, setChildText] = useState('');
-  const [childHref, setChildHref] = useState('');
-  const [childHeadingLevel, setChildHeadingLevel] = useState(3);
-  const [childTableHeaders, setChildTableHeaders] = useState('');
-  const [childTableRows, setChildTableRows] = useState('');
-  const [childImageSrc, setChildImageSrc] = useState('');
-  const [childImageAlt, setChildImageAlt] = useState('');
-  const [childListStyle, setChildListStyle] = useState('unordered');
-  const [childListItems, setChildListItems] = useState([]);
-  const [childListItemText, setChildListItemText] = useState('');
-  const [faqItems, setFaqItems] = useState([]);
-  const [faqQuestion, setFaqQuestion] = useState('');
-  const [faqAnswer, setFaqAnswer] = useState('');
-  const [blockImageSrc, setBlockImageSrc] = useState('');
   const [blocks, setBlocks] = useState([]);
-  const [blockImageAlt, setBlockImageAlt] = useState('');
-  const [blockImageFile, setBlockImageFile] = useState(null);
-  const [uploadMessage, setUploadMessage] = useState('');
-  const [blockHeaders, setBlockHeaders] = useState('');
-  const [blockRows, setBlockRows] = useState('');
-  const [blockStyle, setBlockStyle] = useState('unordered');
-  const [blockItems, setBlockItems] = useState('');
-  const [nestedListItems, setNestedListItems] = useState([]);
-  const [nestedListInputs, setNestedListInputs] = useState({});
-  const [listItemText, setListItemText] = useState('');
-  const [childNestedListItems, setChildNestedListItems] = useState([]);
-  const [childNestedListInputs, setChildNestedListInputs] = useState({});
-  const [sectionChildNestedListItems, setSectionChildNestedListItems] = useState([]);
-  const [sectionChildNestedListInputs, setSectionChildNestedListInputs] = useState({});
-  const [sectionParagraphChildNestedListItems, setSectionParagraphChildNestedListItems] = useState([]);
-  const [sectionParagraphChildNestedListInputs, setSectionParagraphChildNestedListInputs] = useState({});
-  const [sectionHeadingText, setSectionHeadingText] = useState('');
-  const [sectionHeadingLevel, setSectionHeadingLevel] = useState(2);
-  const [sectionChildren, setSectionChildren] = useState([]);
-  const [sectionChildType, setSectionChildType] = useState('paragraph');
-  const [sectionChildText, setSectionChildText] = useState('');
-  const [sectionChildHref, setSectionChildHref] = useState('');
-  const [sectionChildHeadingLevel, setSectionChildHeadingLevel] = useState(3);
-  const [sectionChildTableHeaders, setSectionChildTableHeaders] = useState('');
-  const [sectionChildTableRows, setSectionChildTableRows] = useState('');
-  const [sectionChildImageSrc, setSectionChildImageSrc] = useState('');
-  const [sectionChildImageAlt, setSectionChildImageAlt] = useState('');
-  const [sectionChildListStyle, setSectionChildListStyle] = useState('unordered');
-  const [sectionChildListItems, setSectionChildListItems] = useState([]);
-  const [sectionChildListItemText, setSectionChildListItemText] = useState('');
-  const [sectionParagraphChildren, setSectionParagraphChildren] = useState([]);
-  const [sectionParagraphChildType, setSectionParagraphChildType] = useState('text');
-  const [sectionParagraphChildText, setSectionParagraphChildText] = useState('');
-  const [sectionParagraphChildHref, setSectionParagraphChildHref] = useState('');
-  const [sectionParagraphChildHeadingLevel, setSectionParagraphChildHeadingLevel] = useState(3);
-  const [sectionParagraphChildTableHeaders, setSectionParagraphChildTableHeaders] = useState('');
-  const [sectionParagraphChildTableRows, setSectionParagraphChildTableRows] = useState('');
-  const [sectionParagraphChildImageSrc, setSectionParagraphChildImageSrc] = useState('');
-  const [sectionParagraphChildImageAlt, setSectionParagraphChildImageAlt] = useState('');
-  const [sectionParagraphChildListStyle, setSectionParagraphChildListStyle] = useState('unordered');
-  const [sectionParagraphChildListItems, setSectionParagraphChildListItems] = useState([]);
-  const [sectionParagraphChildListItemText, setSectionParagraphChildListItemText] = useState('');
+  const [sectionTitle, setSectionTitle] = useState('');
+  const [sectionContent, setSectionContent] = useState('<p></p>');
+  const [editingSectionIndex, setEditingSectionIndex] = useState(null);
 
   useEffect(() => {
     async function loadCategories() {
@@ -158,122 +102,57 @@ export default function EditorClient({ searchParams }) {
 
   const canSave = Boolean(post.title && post.slug && post.category);
 
-  const addBlock = () => {
-    let block = null;
-
-    if (blockType === 'paragraph') {
-      block = {
-        type: 'paragraph',
-        text: blockText || null
-      };
-      if (paragraphChildren.length > 0) {
-        block.children = paragraphChildren;
-      }
-    }
-
-    if (blockType === 'heading') {
-      block = { type: 'heading', level: blockHeadingLevel, text: blockText || 'Heading text' };
-    }
-
-    if (blockType === 'list') {
-      const items = nestedListItems.length > 0
-        ? nestedListItems
-        : blockItems.split('\n').map((item) => item.trim()).filter(Boolean).map((text) => ({ text, children: [] }));
-      block = {
-        type: 'list',
-        style: blockStyle,
-        item
-      };
-    }
-
-    if (blockType === 'table') {
-      const { headers, rows } = parseTableInput(blockHeaders, blockRows);
-      block = { type: 'table', headers, rows };
-    }
-
-    if (blockType === 'image') {
-      block = {
-        type: 'image',
-        src: blockImageSrc || '',
-        alt: blockImageAlt || ''
-      };
-    }
-
-    if (blockType === 'section') {
-      block = {
-        type: 'section',
-        heading: sectionHeadingText.trim() || undefined,
-        headingLevel: sectionHeadingText ? sectionHeadingLevel : undefined,
-        children: sectionChildren
-      };
-    }
-
-    if (blockType === 'faq') {
-      block = {
-        type: 'faq',
-        items: faqItems.map((item) => ({
-          question: item.question,
-          answer: item.answer
-        }))
-      };
-    }
-
-    if (blockType === 'html') {
-      block = { type: 'html', html: blockHtml || '<p>Insert rich HTML, links, or tables here.</p>' };
-    }
-
-    if (!block) {
+  const saveSectionBlock = () => {
+    const normalizedContent = sectionContent?.trim() || '<p></p>';
+    if (!sectionTitle.trim() && normalizedContent === '<p></p>') {
+      setMessage('Add a section title or content before saving a section.');
       return;
     }
 
-    setBlocks((prevBlocks) => [...prevBlocks, block]);
-    setBlockText('');
-    setBlockHtml('');
-    setBlockHeaders('');
-    setBlockRows('');
-    setBlockItems('');
-    setParagraphChildren([]);
-    setChildText('');
-    setChildHref('');
-    setChildTableHeaders('');
-    setChildTableRows('');
-    setChildImageSrc('');
-    setChildImageAlt('');
-    setChildListStyle('unordered');
-    setChildListItems([]);
-    setChildListItemText('');
-    setSectionHeadingText('');
-    setSectionHeadingLevel(2);
-    setSectionChildren([]);
-    setSectionChildType('paragraph');
-    setSectionChildText('');
-    setSectionChildHref('');
-    setSectionChildHeadingLevel(3);
-    setSectionChildTableHeaders('');
-    setSectionChildTableRows('');
-    setSectionChildImageSrc('');
-    setSectionChildImageAlt('');
-    setSectionChildListStyle('unordered');
-    setSectionChildListItems([]);
-    setSectionChildListItemText('');
-    setSectionParagraphChildren([]);
-    setSectionParagraphChildType('text');
-    setSectionParagraphChildText('');
-    setSectionParagraphChildHref('');
-    setSectionParagraphChildHeadingLevel(3);
-    setSectionParagraphChildTableHeaders('');
-    setSectionParagraphChildTableRows('');
-    setSectionParagraphChildImageSrc('');
-    setSectionParagraphChildImageAlt('');
-    setSectionParagraphChildListStyle('unordered');
-    setSectionParagraphChildListItems([]);
-    setSectionParagraphChildListItemText('');
-    setFaqItems([]);
-    setFaqQuestion('');
-    setFaqAnswer('');
-    setNestedListItems([]);
-    setNestedListInputs({});
-    setListItemText('');
+    const section = {
+      type: 'section',
+      heading: sectionTitle.trim() || undefined,
+      headingLevel: sectionTitle.trim() ? 2 : undefined,
+      children: [{ type: 'html', html: normalizedContent }]
+    };
+
+    setBlocks((prevBlocks) => {
+      if (editingSectionIndex === null) {
+        return [...prevBlocks, section];
+      }
+      return prevBlocks.map((block, index) => (index === editingSectionIndex ? section : block));
+    });
+    setSectionTitle('');
+    setSectionContent('<p></p>');
+    setMessage(editingSectionIndex === null ? 'Section added.' : 'Section updated.');
+    setEditingSectionIndex(null);
+  };
+
+  const editSectionBlock = (indexToEdit) => {
+    const section = blocks[indexToEdit];
+    setSectionTitle(section.heading || '');
+    setSectionContent(section.children?.find((child) => child?.type === 'html')?.html || '<p></p>');
+    setEditingSectionIndex(indexToEdit);
+    setMessage(`Editing ${section.heading || `section ${indexToEdit + 1}`}.`);
+  };
+
+  const cancelSectionEdit = () => {
+    setEditingSectionIndex(null);
+    setSectionTitle('');
+    setSectionContent('<p></p>');
+    setMessage('Section edit cancelled.');
+  };
+
+  const removeSectionBlock = (indexToRemove) => {
+    setBlocks((prevBlocks) => prevBlocks.filter((_, index) => index !== indexToRemove));
+    if (editingSectionIndex === indexToRemove) {
+      cancelSectionEdit();
+      return;
+    }
+    if (editingSectionIndex !== null && indexToRemove < editingSectionIndex) {
+      setEditingSectionIndex((index) => index - 1);
+    }
+    setMessage('Section removed.');
   };
 
   const savePost = async () => {
@@ -482,6 +361,76 @@ export default function EditorClient({ searchParams }) {
 
   const removeParagraphChild = (index) => {
     setParagraphChildren((prevChildren) => prevChildren.filter((_, idx) => idx !== index));
+  };
+
+  const updateParagraphChild = (index, updatedChild) => {
+    setParagraphChildren((prevChildren) => prevChildren.map((child, idx) => (idx === index ? updatedChild : child)));
+  };
+
+  const updateParagraphChildField = (index, field, value) => {
+    setParagraphChildren((prevChildren) => prevChildren.map((child, idx) => {
+      if (idx !== index) {
+        return child;
+      }
+      return { ...child, [field]: value };
+    }));
+  };
+
+  const updateParagraphChildListItem = (childIndex, path, updatedText) => {
+    setParagraphChildren((prevChildren) => prevChildren.map((child, idx) => {
+      if (idx !== childIndex) {
+        return child;
+      }
+      return {
+        ...child,
+        items: updateNestedTextIn(child.items || [], path, updatedText)
+      };
+    }));
+  };
+
+  const removeParagraphChildListItem = (childIndex, path) => {
+    setParagraphChildren((prevChildren) => prevChildren.map((child, idx) => {
+      if (idx !== childIndex) {
+        return child;
+      }
+      return {
+        ...child,
+        items: removeNestedItem(child.items || [], path)
+      };
+    }));
+  };
+
+  const renderParagraphChildListItems = (items, childIndex, path = []) => {
+    return (
+      <ul className="space-y-2">
+        {items.map((item, idx) => {
+          const itemPath = [...path, idx];
+          return (
+            <li key={itemPath.join('-')} className="rounded-xl border border-slate-200 bg-white p-3">
+              <div className="mb-2 flex items-center gap-2">
+                <input
+                  value={item.text || ''}
+                  onChange={(event) => updateParagraphChildListItem(childIndex, itemPath, event.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2"
+                />
+                <button
+                  type="button"
+                  className="button small secondary"
+                  onClick={() => removeParagraphChildListItem(childIndex, itemPath)}
+                >
+                  Remove
+                </button>
+              </div>
+              {item.children && item.children.length > 0 ? (
+                <div className="ml-4 border-l-2 border-slate-200 pl-3">
+                  {renderParagraphChildListItems(item.children, childIndex, itemPath)}
+                </div>
+              ) : null}
+            </li>
+          );
+        })}
+      </ul>
+    );
   };
 
   const removeBlock = (index) => {
@@ -861,768 +810,76 @@ export default function EditorClient({ searchParams }) {
           </label>
         </div>
         <div className="editor-panel">
-          <label>
-            Block type
-            <select value={blockType} onChange={(event) => setBlockType(event.target.value)}>
-              <option value="paragraph">Paragraph</option>
-              <option value="heading">Heading</option>
-              <option value="section">Section</option>
-              <option value="list">List</option>
-              <option value="table">Table</option>
-              <option value="image">Image</option>
-              <option value="faq">FAQ</option>
-              <option value="html">HTML / links</option>
-            </select>
-          </label>
-          {blockType === 'paragraph' && (
-            <>
-              <label>
-                Paragraph text
-                <textarea value={blockText} onChange={(event) => setBlockText(event.target.value)} />
-              </label>
-              <div className="nested-block-builder">
-                <strong>Nested paragraph content</strong>
-                <label>
-                  Nested block type
-                  <select value={childType} onChange={(event) => setChildType(event.target.value)}>
-                    <option value="text">Text</option>
-                    <option value="link">Link</option>
-                    <option value="heading">Subheading</option>
-                    <option value="table">Table</option>
-                    <option value="image">Image</option>
-                    <option value="list">List</option>
-                  </select>
-                </label>
-                {childType !== 'list' && (
-                  <label>
-                    Text
-                    <textarea value={childText} onChange={(event) => setChildText(event.target.value)} />
-                  </label>
-                )}
-                {childType === 'link' && (
-                  <label>
-                    Link URL
-                    <input value={childHref} onChange={(event) => setChildHref(event.target.value)} placeholder="https://example.com" />
-                  </label>
-                )}
-                {childType === 'heading' && (
-                  <label>
-                    Heading level
-                    <select value={childHeadingLevel} onChange={(event) => setChildHeadingLevel(Number(event.target.value))}>
-                      {[3, 4, 5, 6].map((level) => (
-                        <option key={level} value={level}>
-                          H{level}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                )}
-                {childType === 'table' && (
-                  <>
-                    <label>
-                      Table headers (comma separated)
-                      <input value={childTableHeaders} onChange={(event) => setChildTableHeaders(event.target.value)} />
-                    </label>
-                    <label>
-                      Table rows (one row per line, comma or tab separated)
-                      <textarea value={childTableRows} onChange={(event) => setChildTableRows(event.target.value)} />
-                    </label>
-                  </>
-                )}
-                {childType === 'image' && (
-                  <>
-                    <label>
-                      Image URL
-                      <input value={childImageSrc} onChange={(event) => setChildImageSrc(event.target.value)} placeholder="https://example.com/image.jpg" />
-                    </label>
-                    <label>
-                      Alt text
-                      <input value={childImageAlt} onChange={(event) => setChildImageAlt(event.target.value)} />
-                    </label>
-                  </>
-                )}
-                {childType === 'list' && (
-                  <div className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                    <label>
-                      List style
-                      <select value={childListStyle} onChange={(event) => setChildListStyle(event.target.value)}>
-                        <option value="unordered">Unordered</option>
-                        <option value="ordered">Ordered</option>
-                      </select>
-                    </label>
-                    <label>
-                      Item text
-                      <input
-                        value={childListItemText}
-                        onChange={(event) => setChildListItemText(event.target.value)}
-                        placeholder="Enter item text"
-                        onKeyDown={(event) => {
-                          if (event.key === 'Enter') {
-                            event.preventDefault();
-                            addChildListItem();
-                          }
-                        }}
-                      />
-                    </label>
-                    <button
-                      type="button"
-                      className="button secondary"
-                      onClick={addChildListItem}
-                    >
-                      Add list item
-                    </button>
-                    {childNestedListItems.length > 0 ? (
-                      <div>
-                        <strong className="block mb-2">Current nested list</strong>
-                        {renderListItemUI(childNestedListItems, [], {
-                          getInputValue: getChildNestedListInputValue,
-                          setInputValue: setChildNestedListInputValue,
-                          addItem: addChildNestedListItem,
-                          updateItemText: updateChildNestedListItemText,
-                          removeItem: removeChildListItem,
-                          defaultStyle: childListStyle
-                        })}
-                      </div>
-                    ) : childListItems.length > 0 ? (
-                      <div>
-                        <strong className="block mb-2">Current items</strong>
-                        <ul className="list-disc pl-5 text-slate-700">
-                          {childListItems.map((item, index) => (
-                            <li key={index}>{item.text}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    ) : null}
-                  </div>
-                )}
-                <button type="button" onClick={addParagraphChild} className="button secondary">
-                  Add Nested Child
-                </button>
-                {paragraphChildren.length > 0 && (
-                  <div className="nested-block-list">
-                    <strong>Current nested content</strong>
-                    <ul>
-                      {paragraphChildren.map((child, index) => (
-                        <li key={index} className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-3">
-                          <span>{child.type}: {child.text || child.href || child.src || 'content'}</span>
-                          <button
-                            type="button"
-                            className="button small secondary"
-                            onClick={() => removeParagraphChild(index)}
-                          >
-                            Remove
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            </>
-          )}
-          {blockType === 'heading' && (
-            <>
-              <label>
-                Heading text
-                <textarea value={blockText} onChange={(event) => setBlockText(event.target.value)} />
-              </label>
-              <label>
-                Heading level
-                <select value={blockHeadingLevel} onChange={(event) => setBlockHeadingLevel(Number(event.target.value))}>
-                  {[2, 3, 4, 5, 6].map((level) => (
-                    <option key={level} value={level}>
-                      H{level}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </>
-          )}
-          {blockType === 'section' && (
-            <div className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-5">
-              <label>
-                Section heading (optional)
-                <input
-                  value={sectionHeadingText}
-                  onChange={(event) => setSectionHeadingText(event.target.value)}
-                  placeholder="Section title"
-                />
-              </label>
-              {sectionHeadingText ? (
-                <label>
-                  Heading level
-                  <select value={sectionHeadingLevel} onChange={(event) => setSectionHeadingLevel(Number(event.target.value))}>
-                    {[2, 3, 4, 5, 6].map((level) => (
-                      <option key={level} value={level}>
-                        H{level}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              ) : null}
-              <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                <strong className="mb-3 block">Add section content</strong>
-                <label>
-                  Content type
-                  <select value={sectionChildType} onChange={(event) => setSectionChildType(event.target.value)}>
-                    <option value="paragraph">Paragraph</option>
-                    <option value="heading">Heading</option>
-                    <option value="list">List</option>
-                    <option value="table">Table</option>
-                    <option value="image">Image</option>
-                  </select>
-                </label>
-                {sectionChildType === 'paragraph' && (
-                  <>
-                    <label>
-                      Paragraph text
-                      <textarea value={sectionChildText} onChange={(event) => setSectionChildText(event.target.value)} />
-                    </label>
-                    <div className="nested-block-builder rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                      <strong className="block mb-3">Nested paragraph content</strong>
-                      <label>
-                        Nested block type
-                        <select value={sectionParagraphChildType} onChange={(event) => setSectionParagraphChildType(event.target.value)}>
-                          <option value="text">Text</option>
-                          <option value="link">Link</option>
-                          <option value="heading">Subheading</option>
-                          <option value="table">Table</option>
-                          <option value="image">Image</option>
-                          <option value="list">List</option>
-                        </select>
-                      </label>
-                      {sectionParagraphChildType !== 'list' && (
-                        <label>
-                          Text
-                          <textarea
-                            value={sectionParagraphChildText}
-                            onChange={(event) => setSectionParagraphChildText(event.target.value)}
-                          />
-                        </label>
-                      )}
-                      {sectionParagraphChildType === 'link' && (
-                        <label>
-                          Link URL
-                          <input
-                            value={sectionParagraphChildHref}
-                            onChange={(event) => setSectionParagraphChildHref(event.target.value)}
-                            placeholder="https://example.com"
-                          />
-                        </label>
-                      )}
-                      {sectionParagraphChildType === 'heading' && (
-                        <label>
-                          Heading level
-                          <select
-                            value={sectionParagraphChildHeadingLevel}
-                            onChange={(event) => setSectionParagraphChildHeadingLevel(Number(event.target.value))}
-                          >
-                            {[3, 4, 5, 6].map((level) => (
-                              <option key={level} value={level}>
-                                H{level}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                      )}
-                      {sectionParagraphChildType === 'table' && (
-                        <>
-                          <label>
-                            Table headers (comma separated)
-                            <input
-                              value={sectionParagraphChildTableHeaders}
-                              onChange={(event) => setSectionParagraphChildTableHeaders(event.target.value)}
-                            />
-                          </label>
-                          <label>
-                            Table rows (one row per line, comma or tab separated)
-                            <textarea
-                              value={sectionParagraphChildTableRows}
-                              onChange={(event) => setSectionParagraphChildTableRows(event.target.value)}
-                            />
-                          </label>
-                        </>
-                      )}
-                      {sectionParagraphChildType === 'image' && (
-                        <>
-                          <label>
-                            Image URL
-                            <input
-                              value={sectionParagraphChildImageSrc}
-                              onChange={(event) => setSectionParagraphChildImageSrc(event.target.value)}
-                              placeholder="https://example.com/image.jpg"
-                            />
-                          </label>
-                          <label>
-                            Alt text
-                            <input
-                              value={sectionParagraphChildImageAlt}
-                              onChange={(event) => setSectionParagraphChildImageAlt(event.target.value)}
-                            />
-                          </label>
-                        </>
-                      )}
-                      {sectionParagraphChildType === 'list' && (
-                        <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4">
-                          <label>
-                            List style
-                            <select
-                              value={sectionParagraphChildListStyle}
-                              onChange={(event) => setSectionParagraphChildListStyle(event.target.value)}
-                            >
-                              <option value="unordered">Unordered</option>
-                              <option value="ordered">Ordered</option>
-                            </select>
-                          </label>
-                          <label>
-                            Item text
-                            <input
-                              value={sectionParagraphChildListItemText}
-                              onChange={(event) => setSectionParagraphChildListItemText(event.target.value)}
-                              placeholder="Enter item text"
-                              onKeyDown={(event) => {
-                                if (event.key === 'Enter') {
-                                  event.preventDefault();
-                                  addSectionParagraphChildListItem();
-                                }
-                              }}
-                            />
-                          </label>
-                          <button
-                            type="button"
-                            className="button secondary"
-                            onClick={addSectionParagraphChildListItem}
-                          >
-                            Add nested list item
-                          </button>
-                          {sectionParagraphChildNestedListItems.length > 0 ? (
-                            <div>
-                              <strong className="block mb-2">Current nested list</strong>
-                              {renderListItemUI(sectionParagraphChildNestedListItems, [], {
-                                getInputValue: getSectionParagraphChildNestedListInputValue,
-                                setInputValue: setSectionParagraphChildNestedListInputValue,
-                                addItem: addSectionParagraphChildNestedListItem,
-                                updateItemText: updateSectionParagraphChildNestedListItemText,
-                                removeItem: removeSectionParagraphChildListItem,
-                                defaultStyle: sectionParagraphChildListStyle
-                              })}
-                            </div>
-                          ) : sectionParagraphChildListItems.length > 0 ? (
-                            <ul className="list-disc pl-5 text-slate-700">
-                              {sectionParagraphChildListItems.map((item, index) => (
-                                <li key={index}>{item.text}</li>
-                              ))}
-                            </ul>
-                          ) : null}
-                        </div>
-                      )}
-                      <button
-                        type="button"
-                        className="button secondary"
-                        onClick={() => {
-                          let child = null;
-                          if (sectionParagraphChildType === 'text') {
-                            child = { type: 'text', text: sectionParagraphChildText || 'Text' };
-                          }
-                          if (sectionParagraphChildType === 'link') {
-                            child = {
-                              type: 'link',
-                              text: sectionParagraphChildText || 'Link text',
-                              href: sectionParagraphChildHref || 'https://'
-                            };
-                          }
-                          if (sectionParagraphChildType === 'heading') {
-                            child = {
-                              type: 'heading',
-                              level: sectionParagraphChildHeadingLevel,
-                              text: sectionParagraphChildText || 'Subheading'
-                            };
-                          }
-                          if (sectionParagraphChildType === 'table') {
-                            const { headers, rows } = parseTableInput(sectionParagraphChildTableHeaders, sectionParagraphChildTableRows);
-                            child = { type: 'table', headers, rows };
-                          }
-                          if (sectionParagraphChildType === 'image') {
-                            child = { type: 'image', src: sectionParagraphChildImageSrc || '', alt: sectionParagraphChildImageAlt || '' };
-                          }
-                          if (sectionParagraphChildType === 'list') {
-                            child = {
-                              type: 'list',
-                              style: sectionParagraphChildListStyle,
-                              items: sectionParagraphChildNestedListItems.length > 0 ? sectionParagraphChildNestedListItems : sectionParagraphChildListItems
-                            };
-                          }
-                          if (!child) return;
-                          setSectionParagraphChildren((prev) => [...prev, child]);
-                          setSectionParagraphChildText('');
-                          setSectionParagraphChildHref('');
-                          setSectionParagraphChildTableHeaders('');
-                          setSectionParagraphChildTableRows('');
-                          setSectionParagraphChildImageSrc('');
-                          setSectionParagraphChildImageAlt('');
-                          setSectionParagraphChildListStyle('unordered');
-                          setSectionParagraphChildListItems([]);
-                          setSectionParagraphChildNestedListItems([]);
-                          setSectionParagraphChildNestedListInputs({});
-                          setSectionParagraphChildListItemText('');
-                        }}
-                      >
-                        Add nested child
-                      </button>
-                      {sectionParagraphChildren.length > 0 && (
-                        <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                          <strong className="block mb-2">Current nested paragraph children</strong>
-                          <ul className="space-y-2">
-                            {sectionParagraphChildren.map((child, index) => (
-                              <li key={index} className="rounded-xl border border-slate-200 bg-white p-3">
-                                {child.type}: {child.text || child.href || child.src || 'content'}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                    </div>
-                  </>
-                )}
-                {sectionChildType === 'heading' && (
-                  <>
-                    <label>
-                      Heading text
-                      <textarea value={sectionChildText} onChange={(event) => setSectionChildText(event.target.value)} />
-                    </label>
-                    <label>
-                      Heading level
-                      <select value={sectionChildHeadingLevel} onChange={(event) => setSectionChildHeadingLevel(Number(event.target.value))}>
-                        {[2, 3, 4, 5, 6].map((level) => (
-                          <option key={level} value={level}>
-                            H{level}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  </>
-                )}
-                {sectionChildType === 'list' && (
-                  <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4">
-                    <label>
-                      List style
-                      <select value={sectionChildListStyle} onChange={(event) => setSectionChildListStyle(event.target.value)}>
-                        <option value="unordered">Unordered</option>
-                        <option value="ordered">Ordered</option>
-                      </select>
-                    </label>
-                    <label>
-                      Item text
-                      <input
-                        value={sectionChildListItemText}
-                        onChange={(event) => setSectionChildListItemText(event.target.value)}
-                        placeholder="Enter item text"
-                        onKeyDown={(event) => {
-                          if (event.key === 'Enter') {
-                            event.preventDefault();
-                            addSectionChildListItem();
-                          }
-                        }}
-                      />
-                    </label>
-                    <button
-                      type="button"
-                      className="button secondary"
-                      onClick={addSectionChildListItem}
-                    >
-                      Add list item
-                    </button>
-                    {sectionChildNestedListItems.length > 0 ? (
-                      <div>
-                        <strong className="block mb-2">Current nested list</strong>
-                        {renderListItemUI(sectionChildNestedListItems, [], {
-                          getInputValue: getSectionChildNestedListInputValue,
-                          setInputValue: setSectionChildNestedListInputValue,
-                          addItem: addSectionChildNestedListItem,
-                          updateItemText: updateSectionChildNestedListItemText,
-                          removeItem: removeSectionChildListItem,
-                          defaultStyle: sectionChildListStyle
-                        })}
-                      </div>
-                    ) : sectionChildListItems.length > 0 ? (
-                      <ul className="list-disc pl-5 text-slate-700">
-                        {sectionChildListItems.map((item, index) => (
-                          <li key={index}>{item.text}</li>
-                        ))}
-                      </ul>
-                    ) : null}
-                  </div>
-                )}
-                {sectionChildType === 'table' && (
-                  <>
-                    <label>
-                      Table headers (comma separated)
-                      <input value={sectionChildTableHeaders} onChange={(event) => setSectionChildTableHeaders(event.target.value)} />
-                    </label>
-                    <label>
-                      Table rows (one row per line, comma or tab separated)
-                      <textarea value={sectionChildTableRows} onChange={(event) => setSectionChildTableRows(event.target.value)} />
-                    </label>
-                  </>
-                )}
-                {sectionChildType === 'image' && (
-                  <>
-                    <label>
-                      Image URL
-                      <input value={sectionChildImageSrc} onChange={(event) => setSectionChildImageSrc(event.target.value)} placeholder="https://example.com/image.jpg" />
-                    </label>
-                    <label>
-                      Alt text
-                      <input value={sectionChildImageAlt} onChange={(event) => setSectionChildImageAlt(event.target.value)} />
-                    </label>
-                  </>
-                )}
-                <button
-                  type="button"
-                  className="button secondary"
-                  onClick={() => {
-                    let child = null;
-                    if (sectionChildType === 'paragraph') {
-                      child = {
-                        type: 'paragraph',
-                        text: sectionChildText || 'New paragraph',
-                        children: sectionParagraphChildren.length > 0 ? sectionParagraphChildren : []
-                      };
-                    }
-                    if (sectionChildType === 'heading') {
-                      child = {
-                        type: 'heading',
-                        level: sectionChildHeadingLevel,
-                        text: sectionChildText || 'Heading text'
-                      };
-                    }
-                    if (sectionChildType === 'list') {
-                      child = {
-                        type: 'list',
-                        style: sectionChildListStyle,
-                        items: sectionChildNestedListItems.length > 0 ? sectionChildNestedListItems : sectionChildListItems
-                      };
-                    }
-                    if (sectionChildType === 'table') {
-                      const { headers, rows } = parseTableInput(sectionChildTableHeaders, sectionChildTableRows);
-                      child = { type: 'table', headers, rows };
-                    }
-                    if (sectionChildType === 'image') {
-                      child = { type: 'image', src: sectionChildImageSrc || '', alt: sectionChildImageAlt || '' };
-                    }
-                    if (!child) return;
-                    setSectionChildren((prev) => [...prev, child]);
-                    setSectionChildText('');
-                    setSectionChildHref('');
-                    setSectionChildTableHeaders('');
-                    setSectionChildTableRows('');
-                    setSectionChildImageSrc('');
-                    setSectionChildImageAlt('');
-                    setSectionChildListStyle('unordered');
-                    setSectionChildListItems([]);
-                    setSectionChildNestedListItems([]);
-                    setSectionChildNestedListInputs({});
-                    setSectionChildListItemText('');
-                    setSectionParagraphChildren([]);
-                  }}
-                >
-                  Add section content
-                </button>
-                {sectionChildren.length > 0 && (
-                  <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                    <strong className="block mb-2">Current section content</strong>
-                    <ul className="space-y-2">
-                      {sectionChildren.map((child, index) => (
-                        <li key={index} className="rounded-xl border border-slate-200 bg-white p-3">
-                          {child.type}: {child.text || child.href || child.src || 'content'}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600 space-y-3">
+            <div className="rounded-xl border border-slate-200 bg-white p-3">
+              <strong className="mb-2 block text-slate-900">Cover image</strong>
+              <CoverImage
+                featuredImage={post.featuredImage || ''}
+                onFeaturedImageChange={(url) => setPost({ ...post, featuredImage: url })}
+                altText={post.title}
+              />
             </div>
-          )}
-          {blockType === 'list' && (
-            <div className="space-y-4">
-              <label>
-                List style
-                <select value={blockStyle} onChange={(event) => setBlockStyle(event.target.value)}>
-                  <option value="unordered">Unordered</option>
-                  <option value="ordered">Ordered</option>
-                </select>
-              </label>
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-                <strong className="mb-3 block">Build nested list structure</strong>
-                <label className="mb-3 block">
-                  Item text
-                  <input
-                    value={listItemText}
-                    onChange={(event) => setListItemText(event.target.value)}
-                    placeholder="Enter list item text"
-                    onKeyPress={(event) => {
-                      if (event.key === 'Enter') {
-                        event.preventDefault();
-                        addListItem();
-                      }
-                    }}
-                  />
-                </label>
-                <button
-                  type="button"
-                  className="button secondary mb-4"
-                  onClick={addListItem}
-                >
-                  Add Item
-                </button>
-                {nestedListItems.length > 0 ? (
-                  <div className="space-y-2">
-                    <strong className="block">List structure</strong>
-                    {renderListItemUI(nestedListItems)}
-                  </div>
-                ) : null}
-              </div>
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-                <strong className="mb-2 block">Or paste flat list (one per line)</strong>
-                <label>
-                  Items
-                  <textarea
-                    value={blockItems}
-                    onChange={(event) => setBlockItems(event.target.value)}
-                    placeholder="item 1&#10;item 2&#10;item 3"
-                  />
-                </label>
-              </div>
-            </div>
-          )}
-          {blockType === 'table' && (
-            <>
-              <label>
-                Table headers (comma separated)
-                <input value={blockHeaders} onChange={(event) => setBlockHeaders(event.target.value)} />
-              </label>
-              <label>
-                Table rows (one row per line, comma or tab separated)
-                <textarea value={blockRows} onChange={(event) => setBlockRows(event.target.value)} />
-              </label>
-            </>
-          )}
-          {blockType === 'faq' && (
-            <div className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-5">
-              <label>
-                Question
-                <input
-                  value={faqQuestion}
-                  onChange={(event) => setFaqQuestion(event.target.value)}
-                  placeholder="What is this FAQ about?"
-                />
-              </label>
-              <label>
-                Answer
-                <textarea
-                  value={faqAnswer}
-                  onChange={(event) => setFaqAnswer(event.target.value)}
-                  placeholder="Write the answer here."
-                />
-              </label>
-              <button
-                type="button"
-                className="button secondary"
-                onClick={() => {
-                  if (!faqQuestion.trim() || !faqAnswer.trim()) {
-                    return;
-                  }
-                  setFaqItems((prev) => [...prev, { question: faqQuestion.trim(), answer: faqAnswer.trim() }]);
-                  setFaqQuestion('');
-                  setFaqAnswer('');
-                }}
-              >
-                Add FAQ item
-              </button>
-              {faqItems.length > 0 ? (
-                <div className="space-y-3">
-                  <strong>FAQ items</strong>
-                  <ul className="space-y-2">
-                    {faqItems.map((item, index) => (
-                      <li key={index} className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-white p-4">
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <p className="font-semibold text-slate-900">Q: {item.question}</p>
-                            <p className="text-slate-600">A: {item.answer}</p>
-                          </div>
-                          <button
-                            type="button"
-                            className="button small secondary"
-                            onClick={() => setFaqItems((prev) => prev.filter((_, idx) => idx !== index))}
-                          >
-                            Remove
-                          </button>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ) : null}
-            </div>
-          )}
-          {blockType === 'image' && (
-            <>
-              <label>
-                Image URL
-                <input
-                  value={blockImageSrc}
-                  onChange={(event) => setBlockImageSrc(event.target.value)}
-                  placeholder="https://example.com/image.jpg"
-                />
-              </label>
-              <label>
-                Alt text
-                <input value={blockImageAlt} onChange={(event) => setBlockImageAlt(event.target.value)} />
-              </label>
-              <label>
-                Upload image file
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(event) => setBlockImageFile(event.target.files?.[0] || null)}
-                />
-              </label>
-              <button type="button" onClick={uploadImageFile} className="button secondary">
-                Upload Image
-              </button>
-              {uploadMessage ? <p className="status-message">{uploadMessage}</p> : null}
-            </>
-          )}
-          {blockType === 'html' && (
             <label>
-              HTML content
-              <textarea
-                value={blockHtml}
-                onChange={(event) => setBlockHtml(event.target.value)}
-                placeholder={'<p><a href="https://example.com">Link text</a></p>'}
+              Section title
+              <input
+                value={sectionTitle}
+                onChange={(event) => setSectionTitle(event.target.value)}
+                placeholder="Section heading"
               />
             </label>
-          )}
-          <button type="button" onClick={addBlock} className="button secondary">
-            Add Block
-          </button>
-          <div className="block-preview">
-            <h3>Block preview</h3>
-            {blocks.map((block, index) => (
-              <div key={index} className="block-item rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <strong>{block.type}</strong>
-                  <button
-                    type="button"
-                    className="button small secondary"
-                    onClick={() => removeBlock(index)}
-                  >
-                    Remove
-                  </button>
-                </div>
-                <pre className="overflow-x-auto text-xs">{JSON.stringify(block, null, 2)}</pre>
+            <Tiptap
+              content={sectionContent}
+              onChange={setSectionContent}
+            />
+            <button type="button" onClick={saveSectionBlock} className="button secondary">
+              {editingSectionIndex === null ? 'Add section' : 'Update section'}
+            </button>
+            {editingSectionIndex !== null ? (
+              <button type="button" onClick={cancelSectionEdit} className="button secondary">
+                Cancel edit
+              </button>
+            ) : null}
+            {blocks.length > 0 ? (
+              <div className="space-y-2">
+                <strong className="block">Added sections</strong>
+                <ul className="space-y-2">
+                  {blocks.map((block, index) => {
+                    const previewHtml = block.children?.find((child) => child?.type === 'html')?.html || '';
+                    return (
+                      <li key={index} className="rounded-xl border border-slate-200 bg-white p-3 text-slate-700">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="font-semibold text-slate-900">
+                            {block.heading || `Section ${index + 1}`}
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <button
+                              type="button"
+                              onClick={() => editSectionBlock(index)}
+                              className="text-sm text-blue-600 hover:text-blue-700"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => removeSectionBlock(index)}
+                              className="text-sm text-rose-600 hover:text-rose-700"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                        {previewHtml ? (
+                          <div
+                            className="mt-2 text-sm text-slate-600 prose prose-sm max-w-none"
+                            dangerouslySetInnerHTML={{ __html: previewHtml }}
+                          />
+                        ) : null}
+                      </li>
+                    );
+                  })}
+                </ul>
               </div>
-            ))}
+            ) : null}
           </div>
           <button type="button" onClick={savePost} disabled={!canSave} className="button primary">
             Save Post
@@ -1635,6 +892,7 @@ export default function EditorClient({ searchParams }) {
           {message ? <p className="status-message">{message}</p> : null}
           {deleteMessage ? <p className="status-message">{deleteMessage}</p> : null}
         </div>
+        
       </section>
     </main>
   );

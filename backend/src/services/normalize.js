@@ -13,98 +13,107 @@ export const blockTypes = new Set([
   'divider',
   'author',
   'toc',
-  'html'
-]);
+  'html',
+  'text',
+  'link'
+])
 
-export function normalizeBlock(block) {
+export function normalizeBlock (block) {
   if (!block || typeof block !== 'object' || !block.type) {
-    return null;
+    return null
   }
 
-  const type = String(block.type).toLowerCase();
+  const type = String(block.type).toLowerCase()
   if (!blockTypes.has(type)) {
-    return null;
+    return null
   }
 
   const normalized = {
     type,
     ...block
-  };
+  }
 
   if (type === 'heading') {
-    normalized.level = Math.min(6, Math.max(1, parseInt(block.level, 10) || 2));
-    normalized.text = String(block.text || '').trim();
+    normalized.level = Math.min(6, Math.max(1, parseInt(block.level, 10) || 2))
+    normalized.text = String(block.text || '').trim()
   }
 
   if (type === 'paragraph') {
-    normalized.text = String(block.text || '').trim();
+    normalized.text = String(block.text || '').trim()
     normalized.children = Array.isArray(block.children)
       ? block.children.map(normalizeBlock).filter(Boolean)
-      : [];
+      : []
   }
 
   if (type === 'section') {
-    normalized.heading = String(block.heading || '').trim();
-    normalized.headingLevel = Math.min(6, Math.max(1, parseInt(block.headingLevel, 10) || 2));
+    normalized.heading = String(block.heading || '').trim()
+    normalized.headingLevel = Math.min(6, Math.max(1, parseInt(block.headingLevel, 10) || 2))
     normalized.children = Array.isArray(block.children)
       ? block.children.map(normalizeBlock).filter(Boolean)
-      : [];
+      : []
   }
 
   if (type === 'list') {
-    normalized.style = block.style === 'ordered' ? 'ordered' : 'unordered';
-    
-    function normalizeListItems(items) {
-      if (!Array.isArray(items)) return [];
+    normalized.style = block.style === 'ordered' ? 'ordered' : 'unordered'
+
+    function normalizeListItems (items) {
+      if (!Array.isArray(items)) return []
       return items.map((item) => {
         if (typeof item === 'string') {
-          return { text: String(item).trim(), style: 'unordered', children: [] };
+          return { text: String(item).trim(), style: 'unordered', children: [] }
         }
         return {
           text: String(item.text || '').trim(),
           style: item.style === 'ordered' ? 'ordered' : 'unordered',
           children: normalizeListItems(item.children)
-        };
-      });
+        }
+      })
     }
-    
-    normalized.items = normalizeListItems(block.items);
+
+    normalized.items = normalizeListItems(block.items)
   }
 
   if (type === 'faq') {
     normalized.items = Array.isArray(block.items)
       ? block.items.map((item) => ({
-          question: String(item.question || '').trim(),
-          answer: String(item.answer || '').trim()
-        }))
-      : [];
+        question: String(item.question || '').trim(),
+        answer: String(item.answer || '').trim()
+      }))
+      : []
   }
 
   if (type === 'table') {
-    normalized.headers = Array.isArray(block.headers) ? block.headers.map(String) : [];
-    normalized.rows = Array.isArray(block.rows) ? block.rows.map((row) => Array.isArray(row) ? row.map(String) : []) : [];
+    normalized.headers = Array.isArray(block.headers) ? block.headers.map(String) : []
+    normalized.rows = Array.isArray(block.rows) ? block.rows.map((row) => Array.isArray(row) ? row.map(String) : []) : []
   }
 
-  return normalized;
+  if (type === 'text') {
+    normalized.text = String(block.text || '').trim()
+  }
+  if (type === 'link') {
+    normalized.text = String(block.text || '').trim()
+  }
+
+  return normalized
 }
 
-export function normalizePostPayload(payload) {
+export function normalizePostPayload (payload) {
   const blocks = Array.isArray(payload.blocks)
     ? payload.blocks.map(normalizeBlock).filter(Boolean)
-    : [];
+    : []
 
-  const status = payload.status === 'published' ? 'published' : 'draft';
-  let publishedAt = null;
+  const status = payload.status === 'published' ? 'published' : 'draft'
+  let publishedAt = null
 
   if (payload.publishedAt) {
-    const date = new Date(payload.publishedAt);
+    const date = new Date(payload.publishedAt)
     if (!Number.isNaN(date.getTime())) {
-      publishedAt = date;
+      publishedAt = date
     }
   }
 
   if (!publishedAt && status === 'published') {
-    publishedAt = new Date();
+    publishedAt = new Date()
   }
 
   return {
@@ -128,5 +137,5 @@ export function normalizePostPayload(payload) {
     blocks,
     publishedAt,
     relatedPosts: Array.isArray(payload.relatedPosts) ? payload.relatedPosts.map(String) : []
-  };
+  }
 }
