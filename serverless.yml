@@ -11,6 +11,7 @@ provider:
     cors:
       allowedOrigins:
         - https://blog-cms-bay-eight.vercel.app
+        - https://blog-cms-git-sub-dev-big-growth-digital-a853df29.vercel.app
         - http://localhost:3003
       allowedHeaders:
         - Content-Type

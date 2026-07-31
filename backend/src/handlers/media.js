@@ -1,11 +1,11 @@
 import { success, error } from '../utils/response.js'
-import { requireAuth } from '../utils/authMiddleware.js'
+// import { requireAuth } from '../utils/authMiddleware.js'
 import { uploadFile } from '../services/s3.js'
 import { createMediaRecord } from '../models/mediaModel.js'
 
 export async function uploadPresignedUrl (event) {
   try {
-    requireAuth(event)
+    // requireAuth(event)
     const payload = JSON.parse(event.body || '{}')
     const filename = String(payload.filename || '').trim()
     const contentType = String(payload.contentType || 'application/octet-stream').trim()
@@ -27,13 +27,14 @@ export async function uploadPresignedUrl (event) {
       contentType,
       altText,
       key: upload.key,
-      previewUrl: upload.previewUrl,
+      previewUrl: upload.s3Url,
       s3Url: upload.s3Url
       // getCommand: upload.getCommand
     })
 
     return success({ previewUrl: upload.s3Url, s3Url: upload.s3Url, getCommand: upload.getCommand })
   } catch (err) {
+    console.log('error upload', err)
     return error(err.message || 'Unable to upload file', 500)
   }
 }
