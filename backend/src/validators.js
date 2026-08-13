@@ -19,6 +19,7 @@ export const postSchema = Joi.object({
   blocks: Joi.array()
     .items(Joi.object({ type: Joi.string().valid(...Array.from(blockTypes)).required() }).unknown(true))
     .default([]),
+  jsonLd: Joi.any().optional(),
   seo: Joi.object({
     metaTitle: Joi.string().trim().allow(''),
     metaDescription: Joi.string().trim().allow(''),

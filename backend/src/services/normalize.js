@@ -136,6 +136,7 @@ export function normalizePostPayload (payload) {
     tags: Array.isArray(payload.tags) ? payload.tags.map(String).filter(Boolean) : [],
     blocks,
     publishedAt,
-    relatedPosts: Array.isArray(payload.relatedPosts) ? payload.relatedPosts.map(String) : []
+    relatedPosts: Array.isArray(payload.relatedPosts) ? payload.relatedPosts.map(String) : [],
+    jsonLd: payload.jsonLd || null
   }
 }
