@@ -4,6 +4,8 @@ import { v4 as uuidv4 } from 'uuid'
 
 const region = process.env.S3_REGION || 'ap-south-1'
 const bucket = process.env.S3_BUCKET || 'bgd-blogs'
+console.log('access key', process.env.ACCESS_KEY_ID)
+console.log('secret key', process.env.SECRET_ACCESS_KEY_ID)
 
 const client = new S3Client({
   region,

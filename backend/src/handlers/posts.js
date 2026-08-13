@@ -38,7 +38,7 @@ export async function list (event) {
 
     const collection = await getCollection(collectionName)
     const [items, total] = await Promise.all([
-      collection.find(filter).sort({ publishedAt: -1, updatedAt: -1 }).skip(skip).limit(limit).toArray(),
+      collection.find(filter).sort({ publishedAt: -1, updatedAt: -1 }).project({ title: 1, slug: 1, summary: 1, featuredImage: 1, seo: 1 }).skip(skip).limit(limit).toArray(),
       collection.countDocuments(filter)
     ])
 
@@ -114,11 +114,12 @@ export async function update (event) {
     }
 
     const payload = JSON.parse(event.body || '{}')
+    console.log('update payload', payload)
     const { error: validationError, value } = postSchema.validate(payload)
     if (validationError) {
       return error(validationError.message, 400)
     }
-
+    console.log('validate value', value.blocks[0])
     const normalized = normalizePostPayload(value)
     console.log('normalized data', normalized)
     normalized.slug = normalized.slug || generateSlug(normalized.title)
@@ -128,7 +129,9 @@ export async function update (event) {
     }
 
     const collection = await getCollection(collectionName)
+    console.log('final normalised ***********', normalized.blocks[0])
     await collection.updateOne({ _id: new ObjectId(id) }, { $set: normalized, $push: { revisionHistory: { data: normalized, updatedAt: new Date() } } })
+    console.log('post updated successfully')
     return success({ id })
   } catch (err) {
     return error(err.message || 'Unable to update post', 500)

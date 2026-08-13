@@ -90,3 +90,7 @@ export async function getCollection (name) {
   const { db } = await connectToDatabase()
   return db.collection(name)
 }
+export async function countAllDocuments (name) {
+  const { db } = await connectToDatabase()
+  return db.collection(name).countDocuments()
+}

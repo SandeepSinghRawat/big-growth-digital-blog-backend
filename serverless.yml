@@ -13,6 +13,7 @@ provider:
         - https://blog-cms-bay-eight.vercel.app
         - https://blog-cms-git-sub-dev-big-growth-digital-a853df29.vercel.app
         - http://localhost:3003
+        - http://localhost:3004
       allowedHeaders:
         - Content-Type
         - Authorization
@@ -167,5 +168,12 @@ functions:
       - httpApi:
           path: /media/upload
           method: post
+  blogSitemap:
+    handler: backend/src/handlers/sitemap/blogsSitemap.fetchBlogsSitemap
+    timeout: 30
+    events:
+      - httpApi:
+          path: /blogs/sitemap
+          method: get
 resources:
   Resources:

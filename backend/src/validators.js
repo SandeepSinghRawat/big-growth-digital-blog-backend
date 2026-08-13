@@ -28,7 +28,8 @@ export const postSchema = Joi.object({
     openGraph: Joi.object().default({})
   }).default({}),
   relatedPosts: Joi.array().items(Joi.string()).default([]),
-  updatedAt: Joi.string().optional()
+  updatedAt: Joi.string().optional(),
+  revisionHistory: Joi.array().items(Joi.object()).default([])
 })
 
 export const categorySchema = Joi.object({
